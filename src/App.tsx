@@ -1,9 +1,20 @@
 import { useState } from 'react'
 import logo from './logo.svg'
 import './App.css'
+import {invoke} from "@tauri-apps/api/tauri";
 
 function App() {
   const [count, setCount] = useState(0)
+
+  // Invocation from JS
+
+  invoke('my_custom_command', {
+    number: 42,
+  })
+      .then((res) =>
+          console.log(`Message: ${res.message}, Other Val: ${res.other_val}`)
+      )
+      .catch((e) => console.error(e))
 
   return (
     <div className="App">
@@ -16,7 +27,7 @@ function App() {
           </button>
         </p>
         <p>
-          Edit <code>App.tsx</code> and save to test HMR updates.
+          This is bullshit
         </p>
         <p>
           <a
