@@ -8,6 +8,8 @@
 mod menu;
 pub mod tray_menu;
 
+use std::time::Duration;
+
 use menu::handle_menu_events;
 use tray_menu::handle_system_tray_event;
 
@@ -41,6 +43,12 @@ async fn my_custom_command(
     }
 }
 
+#[tauri::command]
+async fn hello_command() -> String {
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    "Hello from Rust!".into()
+}
+
 fn main() {
     let menu = menu::make_menu();
     let system_tray = tray_menu::make_system_tray();
@@ -51,7 +59,7 @@ fn main() {
         .menu(menu)
         .on_menu_event(handle_menu_events)
         .on_system_tray_event(handle_system_tray_event)
-        .invoke_handler(tauri::generate_handler![my_custom_command])
+        .invoke_handler(tauri::generate_handler![my_custom_command, hello_command])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
