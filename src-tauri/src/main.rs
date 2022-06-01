@@ -5,13 +5,11 @@
 
 // Definition in main.rs
 
-use tauri::utils::config::SystemTrayConfig;
-use tauri::Manager;
-use tauri::SystemTray;
-use tauri::SystemTrayEvent;
-use tauri::SystemTrayMenu;
-use tauri::SystemTrayMenuItem;
-use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
+mod menu;
+pub mod tray_menu;
+
+use menu::handle_menu_events;
+use tray_menu::handle_system_tray_event;
 
 struct Database;
 
@@ -29,7 +27,7 @@ async fn some_other_function() -> Option<String> {
 async fn my_custom_command(
     window: tauri::Window,
     number: usize,
-    database: tauri::State<'_, Database>,
+    _database: tauri::State<'_, Database>,
 ) -> Result<CustomResponse, String> {
     println!("Called this from {}", window.label());
     let result: Option<String> = some_other_function().await;
@@ -44,74 +42,15 @@ async fn my_custom_command(
 }
 
 fn main() {
-    // Add main app menu
-    // here `"quit".to_string()` defines the menu item id, and the second parameter is the menu item label.
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let close = CustomMenuItem::new("close".to_string(), "Close");
-    let submenu = Submenu::new("File", Menu::new().add_item(quit).add_item(close));
-    let menu = Menu::new()
-        .add_native_item(MenuItem::Copy)
-        .add_item(CustomMenuItem::new("hide", "Hide"))
-        .add_submenu(submenu);
-
-    // Add the system tray menu
-    // here `"quit".to_string()` defines the menu item id, and the second parameter is the menu item label.
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let hide = CustomMenuItem::new("hide".to_string(), "Hide");
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(quit)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(hide);
-
-    let system_tray = SystemTray::new().with_menu(tray_menu);
+    let menu = menu::make_menu();
+    let system_tray = tray_menu::make_system_tray();
 
     tauri::Builder::default()
         .manage(Database {})
         .system_tray(system_tray)
         .menu(menu)
-        .on_menu_event(|event| match event.menu_item_id() {
-            "quit" => {
-                std::process::exit(0);
-            }
-            "close" => {
-                event.window().close().unwrap();
-            }
-            _ => {}
-        })
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::LeftClick {
-                position: _,
-                size: _,
-                ..
-            } => {
-                println!("system tray received a left click");
-            }
-            SystemTrayEvent::RightClick {
-                position: _,
-                size: _,
-                ..
-            } => {
-                println!("system tray received a right click");
-            }
-            SystemTrayEvent::DoubleClick {
-                position: _,
-                size: _,
-                ..
-            } => {
-                println!("system tray received a double click");
-            }
-            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-                "quit" => {
-                    std::process::exit(0);
-                }
-                "hide" => {
-                    let window = app.get_window("main").unwrap();
-                    window.hide().unwrap();
-                }
-                _ => {}
-            },
-            _ => {}
-        })
+        .on_menu_event(handle_menu_events)
+        .on_system_tray_event(handle_system_tray_event)
         .invoke_handler(tauri::generate_handler![my_custom_command])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

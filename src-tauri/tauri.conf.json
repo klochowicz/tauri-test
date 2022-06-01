@@ -32,7 +32,7 @@
       "shortDescription": "",
       "longDescription": "",
       "deb": {
-        "depends": [],
+        "depends": []
       },
       "macOS": {
         "frameworks": [],
